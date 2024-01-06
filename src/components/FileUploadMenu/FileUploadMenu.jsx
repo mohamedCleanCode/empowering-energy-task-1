@@ -1,4 +1,4 @@
-import { Button, LinearProgress } from "@mui/material";
+import { Button } from "@mui/material";
 import { useEffect, useState } from "react";
 import { IoMdClose } from "react-icons/io";
 import "./styles.css";
@@ -7,14 +7,11 @@ const timeout = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const FileUploadMenu = ({ isOpen, setIsOpen }) => {
+  const maxFileSize = 20;
+  const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
   const [names, setNames] = useState([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
-  const [animate, setAnimate] = useState(false);
-  const [progress, setProgress] = useState(80);
-  const [progressColor, setProgressColor] = useState("");
-  const [openProgress, setOpenProgress] = useState(false);
-  const [processingFile, setProcessingFile] = useState(null);
 
   const fileExtensions = [
     "jpg",
@@ -32,18 +29,17 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
   ];
 
   const handleFileChange = (e) => {
-    const selectedfiles = e.target.files;
-    const found = [...selectedfiles].find((file) => names.includes(file.name));
-    // console.log(names?.split(".")[1]);
+    const selectedFiles = e.target.files;
+    const found = [...selectedFiles].find((file) => names.includes(file.name));
     if (found) {
       alert("This file is exist " + found.name);
       return;
     }
     setFiles((prev) => {
-      [...selectedfiles].map((file) =>
+      [...selectedFiles].map((file) =>
         setNames((prev) => [...prev, file.name])
       );
-      return [...prev, ...selectedfiles];
+      return [...prev, ...selectedFiles];
     });
   };
 
@@ -75,38 +71,37 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
   const uploadFile = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    setProcessingFile(file.name);
-    setOpenProgress(true);
-    setProgressColor("blue");
     try {
       const response = await fetch("http://localhost:3000/upload", {
         method: "POST",
         body: formData,
       });
       if (response.ok) {
-        await setOpenProgress(false);
-        await setAnimate(true);
-        await timeout(1000);
-        await setProcessingFile(null);
-        await setFiles((prevFiles) =>
-          prevFiles.filter((f) => f.name !== file.name)
-        );
-        await setNames((prevNames) =>
-          prevNames.filter((name) => name !== file.name)
-        );
-        await setAnimate(false);
+        setFiles((prevFiles) => {
+          // Use filter to only add files that meet the condition
+          const filteredFiles = prevFiles.filter(
+            (prevFile) => prevFile.name !== file.name
+          );
+          return [
+            {
+              name: file.name,
+              success: false,
+            },
+            ...filteredFiles,
+          ];
+        });
         await console.log(response);
       } else {
         alert("Something went wrong!!!");
-        setProgressColor("red");
       }
     } catch (error) {
       alert(error.message);
-      setProgressColor("red");
     }
+    await timeout(3000);
   };
 
   const handleFileUpload = async () => {
+    setLoading(true);
     for (let i = currentFileIndex; i < files.length; i++) {
       await uploadFile(files[i]);
       setCurrentFileIndex(i + 1);
@@ -114,32 +109,12 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
   };
 
   useEffect(() => {
-    let timer;
-    if (openProgress) {
-      timer = setInterval(() => {
-        setProgress((oldProgress) => {
-          if (oldProgress === 100) {
-            return 0;
-          }
-          const diff = Math.random() * 70;
-          return Math.min(oldProgress + diff, 100);
-        });
-      }, 500);
-    }
-
-    return () => {
-      clearInterval(timer);
-      setProgress;
-    };
-  }, [openProgress]);
-
-  useEffect(() => {
     if (files.length === 0) {
       setCurrentFileIndex(0);
       setNames([]);
     } else {
       files.forEach((file) => {
-        let checkExt = fileExtensions.includes(file.name.split(".")[1]);
+        let checkExt = fileExtensions.includes(file?.name?.split(".")[1]);
         if (!checkExt) {
           alert("Invalid File Format! Please select a valid file format.");
         }
@@ -199,12 +174,6 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                       files.map((file, i) => {
                         return (
                           <div
-                            className={`${
-                              animate &&
-                              names.indexOf(file.name) === currentFileIndex
-                                ? "animate"
-                                : ""
-                            }`}
                             key={i}
                             style={{
                               display: "flex",
@@ -214,7 +183,7 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                               transition: "all .5s",
                             }}
                           >
-                            <p>{file.name}</p>
+                            <p>{file?.name}</p>
                             <span
                               onClick={() => removeDocument(file?.name)}
                               style={{
@@ -223,21 +192,44 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                             >
                               X
                             </span>
-                            <div
-                              style={{
-                                position: "absolute",
-                                width: " 100%",
-                                bottom: " 0",
-                              }}
-                            >
-                              {openProgress && processingFile === file.name ? (
-                                <LinearProgress
-                                  variant="determinate"
-                                  value={progress}
-                                />
-                              ) : (
-                                ""
-                              )}
+                            {file?.size > maxFileSize * 1024 * 1024 && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  bottom: "0",
+                                  fontSize: "10px",
+                                  color: "red",
+                                  fontWeight: " bold",
+                                  padding: "0 10px",
+                                }}
+                              >
+                                File size exceeds {maxFileSize} MB limit
+                              </div>
+                            )}
+                            <div className="progress-bar">
+                              <div
+                                className={`progress-bar-inner ${
+                                  file?.success === true
+                                    ? "success"
+                                    : file?.success === false
+                                    ? "error"
+                                    : ""
+                                }`}
+                                style={{
+                                  width:
+                                    file?.success === true
+                                      ? "100%"
+                                      : file?.success === false
+                                      ? "100%"
+                                      : "0%",
+                                  backgroundColor:
+                                    file?.success === true
+                                      ? "green"
+                                      : file?.success === false
+                                      ? "red"
+                                      : "#eee",
+                                }}
+                              ></div>
                             </div>
                           </div>
                         );
@@ -261,6 +253,7 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                       setFiles([]);
                       setNames([]);
                     }}
+                    // disabled={loading}
                   >
                     Clear
                   </Button>
@@ -268,13 +261,16 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                     onClick={handleFileUpload}
                     variant="outlined"
                     color="error"
+                    // disabled={loading}
                   >
                     Upload
                   </Button>
                 </div>
               )}
             </div>
-            <button onClick={() => setIsOpen(false)}>Cancel</button>
+            <button onClick={() => setIsOpen(false)} disabled={loading}>
+              Cancel
+            </button>
           </div>
         </div>
       )}
