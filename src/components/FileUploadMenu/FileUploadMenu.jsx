@@ -1,3 +1,4 @@
+import CloseIcon from "@mui/icons-material/Close";
 import { Button } from "@mui/material";
 import { useEffect, useState } from "react";
 import { IoMdClose } from "react-icons/io";
@@ -12,6 +13,7 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
   const [files, setFiles] = useState([]);
   const [names, setNames] = useState([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [isValidSize, setIsValidSize] = useState(false);
 
   const fileExtensions = [
     "jpg",
@@ -35,6 +37,9 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
       alert("This file is exist " + found.name);
       return;
     }
+    setIsValidSize(
+      [...selectedFiles].some((file) => file.size > maxFileSize * 1024 * 1024)
+    );
     setFiles((prev) => {
       [...selectedFiles].map((file) =>
         setNames((prev) => [...prev, file.name])
@@ -78,26 +83,34 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
       });
       if (response.ok) {
         setFiles((prevFiles) => {
-          // Use filter to only add files that meet the condition
-          const filteredFiles = prevFiles.filter(
-            (prevFile) => prevFile.name !== file.name
+          return prevFiles.map((prevFile) =>
+            prevFile.name === file.name
+              ? {
+                  name: file.name,
+                  success: true,
+                  ...file,
+                }
+              : prevFile
           );
-          return [
-            {
-              name: file.name,
-              success: false,
-            },
-            ...filteredFiles,
-          ];
         });
-        await console.log(response);
       } else {
+        setFiles((prevFiles) => {
+          return prevFiles.map((prevFile) =>
+            prevFile.name === file.name
+              ? {
+                  name: file.name,
+                  success: false,
+                  ...file,
+                }
+              : prevFile
+          );
+        });
         alert("Something went wrong!!!");
       }
     } catch (error) {
       alert(error.message);
     }
-    await timeout(3000);
+    await timeout(1000);
   };
 
   const handleFileUpload = async () => {
@@ -106,12 +119,16 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
       await uploadFile(files[i]);
       setCurrentFileIndex(i + 1);
     }
+    setLoading(false);
+    setFiles([]);
+    setNames([]);
   };
 
   useEffect(() => {
     if (files.length === 0) {
       setCurrentFileIndex(0);
       setNames([]);
+      setLoading(false);
     } else {
       files.forEach((file) => {
         let checkExt = fileExtensions.includes(file?.name?.split(".")[1]);
@@ -145,20 +162,18 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                 />
                 <label htmlFor="fileInput">Browse...</label>
                 <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
+                  className="dropdown-area"
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                 >
                   Or Drop files here.
                 </div>
               </div>
-              <div>
+              <div
+                style={{
+                  opacity: "0.9",
+                }}
+              >
                 <>
                   {files?.length >= 1 && (
                     <h2
@@ -169,20 +184,11 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                       Selected File:
                     </h2>
                   )}
-                  <div>
+                  <div className="files-container">
                     {files?.length >= 1 &&
                       files.map((file, i) => {
                         return (
-                          <div
-                            key={i}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              position: "relative",
-                              transition: "all .5s",
-                            }}
-                          >
+                          <div className="file-container" key={i}>
                             <p>{file?.name}</p>
                             <span
                               onClick={() => removeDocument(file?.name)}
@@ -190,25 +196,25 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                                 cursor: "pointer",
                               }}
                             >
-                              X
+                              <CloseIcon />
                             </span>
                             {file?.size > maxFileSize * 1024 * 1024 && (
                               <div
                                 style={{
                                   position: "absolute",
-                                  bottom: "0",
+                                  bottom: "8px",
                                   fontSize: "10px",
                                   color: "red",
                                   fontWeight: " bold",
-                                  padding: "0 10px",
+                                  padding: "0 15px",
                                 }}
                               >
                                 File size exceeds {maxFileSize} MB limit
                               </div>
                             )}
-                            <div className="progress-bar">
+                            <div className={`progress-bar`}>
                               <div
-                                className={`progress-bar-inner ${
+                                className={`progress-bar-inner  ${
                                   file?.success === true
                                     ? "success"
                                     : file?.success === false
@@ -229,7 +235,28 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                                       ? "red"
                                       : "#eee",
                                 }}
-                              ></div>
+                              >
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "100%",
+                                    right: "0",
+                                    fontSize: "12px",
+                                    paddingTop: "6px",
+                                  }}
+                                >
+                                  {file?.success === true && (
+                                    <span style={{ color: "green" }}>
+                                      File uploaded successfully
+                                    </span>
+                                  )}
+                                  {file?.success === false && (
+                                    <span style={{ color: "red" }}>
+                                      File could not uploaded{" "}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );
@@ -244,7 +271,7 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                     justifyContent: "center",
                     alignItems: "center",
                     gap: "15px",
-                    margin: "10px 0",
+                    margin: "30px 0",
                   }}
                 >
                   <Button
@@ -253,7 +280,7 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                       setFiles([]);
                       setNames([]);
                     }}
-                    // disabled={loading}
+                    disabled={loading}
                   >
                     Clear
                   </Button>
@@ -261,16 +288,21 @@ const FileUploadMenu = ({ isOpen, setIsOpen }) => {
                     onClick={handleFileUpload}
                     variant="outlined"
                     color="error"
-                    // disabled={loading}
+                    disabled={loading || isValidSize ? true : false}
                   >
                     Upload
                   </Button>
                 </div>
               )}
             </div>
-            <button onClick={() => setIsOpen(false)} disabled={loading}>
+            <Button
+              onClick={() => setIsOpen(false)}
+              variant="outlined"
+              color="error"
+              disabled={loading}
+            >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -1,3 +1,31 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  height: 100vh;
+  font-family: roboto;
+}
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 5px;
+  width: 80%;
+  border-radius: 5px;
+  background-color: #eee;
+}
+.progress-bar.done {
+  display: none;
+}
+.progress-bar-inner {
+  height: 100%;
+  width: 0%;
+  transition: all 0.3s ease-in-out;
+}
+
 .overlay {
   position: fixed;
   left: 0;
@@ -29,7 +57,6 @@
 }
 .file-upload-menu p {
   padding: 10px;
-  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -47,6 +74,10 @@
   border: none;
   border-radius: 12px;
 }
+.file-upload-menu > button:hover {
+  background-color: #4c636e;
+  border: none;
+}
 .manage-actions {
   flex: 1;
   display: flex;
@@ -56,20 +87,42 @@
   overflow: scroll;
 }
 .manage-actions > div:first-child {
-  border: 1px solid #eee;
+  border: 1px dashed #eeeeee;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 10px;
 }
 .manage-actions label {
-  border: 2px solid #000;
+  border: 1px solid #0000002b;
   padding: 10px;
-  color: #000;
+  color: #0000007a;
   cursor: pointer;
 }
 .manage-actions label + div {
   padding: 0 10px;
   text-align: center;
   cursor: pointer;
+}
+.dropdown-area {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #00000085;
+  font-size: 14px;
+}
+.files-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.file-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  transition: all 0.5s ease 0s;
+  padding: 10px 0px;
 }
